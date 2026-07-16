@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>划词翻译</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>划词翻译</h1>
+      <p class="subtitle">英文划词翻译+生词高亮</p>
+    </header>
+    
+    <div class="quick-actions">
+      <button id="toggle-translate" class="action-btn">
+        <span class="icon">🔍</span>
+        <span class="text">划词翻译</span>
+        <span class="status" id="translate-status">开启</span>
+      </button>
+      
+      <button id="toggle-highlight" class="action-btn">
+        <span class="icon">✨</span>
+        <span class="text">生词高亮</span>
+        <span class="status" id="highlight-status">开启</span>
+      </button>
+      
+      <button id="add-to-blacklist" class="action-btn">
+        <span class="icon">🚫</span>
+        <span class="text">加入黑名单</span>
+      </button>
+    </div>
+    
+    <div class="wordbook-section">
+      <h2>生词本</h2>
+      <div class="wordbook-stats">
+        <span id="word-count">0</span> 个生词
+      </div>
+      <button id="open-wordbook" class="secondary-btn">打开生词本</button>
+    </div>
+    
+    <div class="footer">
+      <button id="open-options" class="link-btn">设置</button>
+      <span class="separator">|</span>
+      <button id="open-wordbook-page" class="link-btn">完整生词本</button>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

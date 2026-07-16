@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>生词本</title>
+  <link rel="stylesheet" href="wordbook.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>生词本</h1>
+      <p class="subtitle">管理您的学习词汇</p>
+    </header>
+    
+    <div class="toolbar">
+      <div class="search-box">
+        <input type="text" id="search-input" placeholder="搜索生词...">
+        <button id="search-btn" class="icon-btn">🔍</button>
+      </div>
+      
+      <div class="action-buttons">
+        <button id="select-all-btn" class="secondary-btn">全选</button>
+        <button id="delete-selected-btn" class="danger-btn">删除选中</button>
+        <button id="export-btn" class="secondary-btn">导出</button>
+        <button id="import-btn" class="secondary-btn">导入</button>
+        <button id="review-btn" class="primary-btn">复习模式</button>
+      </div>
+    </div>
+    
+    <div class="wordbook-stats">
+      <div class="stats-item">
+        <span id="total-count" class="stats-value">0</span>
+        <span>个生词</span>
+      </div>
+      <div class="stats-item">
+        <span id="reviewed-count" class="stats-value">0</span>
+        <span>个已复习</span>
+      </div>
+    </div>
+    
+    <div class="wordbook-grid" id="wordbook-list">
+      <!-- 生词列表将通过JS动态生成 -->
+    </div>
+    
+    <div class="pagination" id="pagination">
+      <!-- 分页将通过JS动态生成 -->
+    </div>
+    
+    <!-- 复习模式模态框 -->
+    <div class="modal" id="review-modal" style="display: none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>复习模式</h2>
+          <button class="close-btn" id="close-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="review-card">
+            <div class="word-display" id="review-word">单词</div>
+            <div class="translation-display" id="review-translation" style="display: none;">释义</div>
+            <button id="show-translation-btn" class="primary-btn">显示释义</button>
+          </div>
+          <div class="review-actions">
+            <button id="mark-known" class="success-btn">认识</button>
+            <button id="mark-unknown" class="danger-btn">不认识</button>
+          </div>
+          <div class="review-progress">
+            <span id="review-progress">0 / 0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <input type="file" id="import-file" accept=".json,.txt" style="display: none;">
+  </div>
+  
+  <script src="wordbook.js"></script>
+</body>
+</html>

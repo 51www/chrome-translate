@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>划词翻译设置</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>划词翻译设置</h1>
+      <p class="subtitle">自定义您的翻译体验</p>
+    </header>
+    
+    <div class="settings-section">
+      <h2>基本设置</h2>
+      
+      <div class="setting-item">
+        <div class="setting-info">
+          <label for="enable-translate">划词翻译</label>
+          <p class="description">启用或禁用划词翻译功能</p>
+        </div>
+        <input type="checkbox" id="enable-translate" class="toggle">
+      </div>
+      
+      <div class="setting-item">
+        <div class="setting-info">
+          <label for="translate-delay">触发延迟</label>
+          <p class="description">选中文本后等待的时间（毫秒）</p>
+        </div>
+        <div class="slider-container">
+          <input type="range" id="translate-delay" min="0" max="1000" step="100" value="500">
+          <span id="delay-value">500ms</span>
+        </div>
+      </div>
+      
+      <div class="setting-item">
+        <div class="setting-info">
+          <label for="font-size">字体大小</label>
+          <p class="description">翻译弹窗的字体大小</p>
+        </div>
+        <select id="font-size" class="select">
+          <option value="12">12px</option>
+          <option value="14">14px</option>
+          <option value="16">16px</option>
+          <option value="18">18px</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="settings-section">
+      <h2>生词高亮</h2>
+      
+      <div class="setting-item">
+        <div class="setting-info">
+          <label for="enable-highlight">启用高亮</label>
+          <p class="description">在页面中高亮显示生词本中的单词</p>
+        </div>
+        <input type="checkbox" id="enable-highlight" class="toggle">
+      </div>
+      
+      <div class="setting-item">
+        <div class="setting-info">
+          <label for="highlight-color">高亮颜色</label>
+          <p class="description">自定义生词高亮的颜色</p>
+        </div>
+        <input type="color" id="highlight-color" value="#ffeb3b">
+      </div>
+      
+      <div class="setting-item">
+        <div class="setting-info">
+          <label for="enable-underline">显示下划线</label>
+          <p class="description">为高亮的生词添加下划线</p>
+        </div>
+        <input type="checkbox" id="enable-underline" class="toggle">
+      </div>
+    </div>
+    
+    <div class="settings-section">
+      <h2>翻译API</h2>
+      
+      <div class="setting-item">
+        <div class="setting-info">
+          <label for="api-select">选择API</label>
+          <p class="description">选择用于翻译的API服务</p>
+        </div>
+        <select id="api-select" class="select">
+          <option value="baidu">百度翻译（通用）</option>
+          <option value="baidu_llm">百度翻译（大模型）</option>
+          <option value="libretranslate">LibreTranslate</option>
+        </select>
+      </div>
+      
+      <div class="setting-item baidu-appid-item">
+        <div class="setting-info">
+          <label for="baidu-appid">百度翻译 App ID</label>
+          <p class="description">在百度翻译开放平台申请的应用ID</p>
+        </div>
+        <input type="text" id="baidu-appid" class="input" placeholder="请输入App ID">
+      </div>
+      
+      <div class="setting-item baidu-key-item">
+        <div class="setting-info">
+          <label for="baidu-key">百度翻译密钥</label>
+          <p class="description">在百度翻译开放平台申请的密钥（用于通用翻译签名）</p>
+        </div>
+        <input type="password" id="baidu-key" class="input" placeholder="请输入密钥">
+      </div>
+      
+      <div class="setting-item llm-apikey-item" style="display: none;">
+        <div class="setting-info">
+          <label for="llm-api-key">大模型翻译 API Key</label>
+          <p class="description">在百度翻译开放平台【API Key管理】页面创建的API Key</p>
+        </div>
+        <input type="password" id="llm-api-key" class="input" placeholder="请输入API Key">
+      </div>
+    </div>
+    
+    <div class="settings-section">
+      <h2>黑名单管理</h2>
+      
+      <div class="blacklist-container">
+        <div class="blacklist-input">
+          <input type="text" id="new-blacklist-domain" placeholder="输入域名（如 youtube.com）">
+          <button id="add-blacklist-btn" class="primary-btn">添加</button>
+        </div>
+        
+        <div class="blacklist-list" id="blacklist-list">
+          <!-- 黑名单列表将通过JS动态生成 -->
+        </div>
+      </div>
+    </div>
+    
+    <div class="settings-section">
+      <h2>数据管理</h2>
+      
+      <div class="data-actions">
+        <button id="export-wordbook" class="secondary-btn">导出生词本</button>
+        <button id="import-wordbook" class="secondary-btn">导入生词本</button>
+        <button id="clear-cache" class="danger-btn">清除缓存</button>
+        <button id="clear-wordbook" class="danger-btn">清空生词本</button>
+      </div>
+      
+      <input type="file" id="import-file" accept=".json,.txt" style="display: none;">
+    </div>
+    
+    <div class="footer">
+      <button id="save-settings" class="primary-btn">保存设置</button>
+      <button id="reset-settings" class="secondary-btn">恢复默认</button>
+    </div>
+  </div>
+  
+  <script src="options.js"></script>
+</body>
+</html>
