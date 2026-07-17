@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "划词英译中+生词高亮",
+  "name": "记词儿",
   "version": "1.0",
   "description": "英文划词翻译扩展，英译中，免费翻译API、生词高亮、站点黑名单",
   "permissions": [
