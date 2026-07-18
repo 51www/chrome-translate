@@ -21,7 +21,56 @@
   let isWordHighlighted = false;
   let lastMouseDownTime = 0;
   let lastMouseDownTarget = null;
-  
+  let isDoubleClickInProgress = false;
+
+  // 检查扩展上下文是否有效
+  function isExtensionValid() {
+    try {
+      return !!chrome.runtime?.id;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // 安全调用 chrome.storage.local.get
+  function safeStorageGet(keys, callback) {
+    if (!isExtensionValid()) return;
+    try {
+      chrome.storage.local.get(keys, (result) => {
+        if (chrome.runtime.lastError) return;
+        callback(result);
+      });
+    } catch (e) {
+      // Extension context invalidated
+    }
+  }
+
+  // 安全调用 chrome.storage.local.set
+  function safeStorageSet(data, callback) {
+    if (!isExtensionValid()) return;
+    try {
+      chrome.storage.local.set(data, () => {
+        if (chrome.runtime.lastError) return;
+        if (callback) callback();
+      });
+    } catch (e) {
+      // Extension context invalidated
+    }
+  }
+
+  // 安全调用 chrome.runtime.sendMessage
+  function safeSendMessage(message, callback) {
+    if (!isExtensionValid()) return;
+    try {
+      chrome.runtime.sendMessage(message, (response) => {
+        if (chrome.runtime.lastError) return;
+        if (callback) callback(response);
+      });
+    } catch (e) {
+      // Extension context invalidated
+    }
+  }
+
   // 初始化
   function init() {
     loadConfig();
@@ -32,7 +81,7 @@
   
   // 加载配置
   function loadConfig() {
-    chrome.storage.local.get(['config', 'blacklist'], (result) => {
+    safeStorageGet(['config', 'blacklist'], (result) => {
       if (result.config) {
         config = { ...config, ...result.config };
       }
@@ -41,18 +90,22 @@
       }
       checkBlacklist();
     });
-    
+
     // 监听配置变化
-    chrome.storage.onChanged.addListener((changes, namespace) => {
-      if (changes.config) {
-        config = { ...config, ...changes.config.newValue };
-        checkBlacklist();
-      }
-      if (changes.blacklist) {
-        config.blacklist = changes.blacklist.newValue || [];
-        checkBlacklist();
-      }
-    });
+    try {
+      chrome.storage.onChanged.addListener((changes, namespace) => {
+        if (changes.config) {
+          config = { ...config, ...changes.config.newValue };
+          checkBlacklist();
+        }
+        if (changes.blacklist) {
+          config.blacklist = changes.blacklist.newValue || [];
+          checkBlacklist();
+        }
+      });
+    } catch (e) {
+      // Extension context invalidated
+    }
   }
   
   // 检查黑名单
@@ -101,7 +154,11 @@
       
       // 跳过正在hover时的变化
       if (isTooltipHovered || isWordHighlighted) return;
-      
+
+      // 跳过有文本选中时的变化
+      const selection = window.getSelection();
+      if (selection && !selection.isCollapsed) return;
+
       if (config.highlightEnabled) {
         clearTimeout(highlightDebounceTimer);
         highlightDebounceTimer = setTimeout(highlightWords, 1500);
@@ -116,9 +173,16 @@
   
   // 处理鼠标按下
   function handleMouseDown(e) {
+    // 检测双击：当前mousedown与上次mousedown间隔小于300ms且在同一元素
+    const timeSinceLastMouseDown = Date.now() - lastMouseDownTime;
+    isDoubleClickInProgress = timeSinceLastMouseDown < 300 && lastMouseDownTarget === e.target;
+    
     // 记录mousedown的时间和目标
     lastMouseDownTime = Date.now();
     lastMouseDownTarget = e.target;
+    
+    // 清除待处理的选择定时器
+    clearTimeout(selectionTimer);
     
     // 如果点击的是tooltip内部，不处理
     if (tooltip && tooltip.contains(e.target)) {
@@ -133,27 +197,25 @@
   
   // 处理鼠标松开
   function handleMouseUp(e) {
+    // 如果功能已关闭，不处理
+    if (!config.enabled) return;
+
     // 如果点击的是tooltip内部，不处理
     if (tooltip && tooltip.contains(e.target)) {
       return;
     }
-    
+
     // 如果点击的是高亮单词，不处理（由hover处理）
     if (e.target.classList && e.target.classList.contains('nl-highlight')) {
       return;
     }
-    
-    // 检测是否为双击（两次mousedown间隔小于300ms且在同一元素）
-    const timeSinceLastMouseDown = Date.now() - lastMouseDownTime;
-    const isDoubleClickAttempt = timeSinceLastMouseDown < 300 && lastMouseDownTarget === e.target;
-    
-    if (isDoubleClickAttempt) {
-      // 可能是双击，等待dblclick事件处理
-      // 清除之前的timer，让dblclick处理
-      clearTimeout(selectionTimer);
+
+    // 使用handleMouseDown中设置的双击检测标志
+    if (isDoubleClickInProgress) {
+      isDoubleClickInProgress = false;
       return;
     }
-    
+
     // 单击处理
     // 如果tooltip正在显示，且用户点击空白区域，隐藏tooltip
     if (tooltip && tooltip.style.display === 'block') {
@@ -161,7 +223,7 @@
       isWordHighlighted = false;
       return;
     }
-    
+
     // 延迟处理选择
     clearTimeout(selectionTimer);
     selectionTimer = setTimeout(() => {
@@ -171,9 +233,12 @@
       }
     }, config.delay);
   }
-  
+
   // 处理双击事件
   function handleDoubleClick(e) {
+    // 如果功能已关闭，不处理
+    if (!config.enabled) return;
+
     // 如果点击的是tooltip内部，不处理
     if (tooltip && tooltip.contains(e.target)) {
       return;
@@ -209,9 +274,14 @@
   
   // 验证是否为有效英文
   function isValidEnglish(text) {
-    // 过滤纯数字、符号、中文
-    const regex = /^[a-zA-Z\s.,!?;:'"()-]+$/;
-    return regex.test(text) && text.length >= 1;
+    // 必须包含至少一个字母
+    if (!/[a-zA-Z]/.test(text)) return false;
+    // 不能包含中文/日文/韩文
+    if (/[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff]/.test(text)) return false;
+    // 检查文本是否主要由英文字符组成（包括字母、空格、常见标点符号）
+    // 排除其他语言的特殊字符（如法语重音、德语变音符号等）
+    const englishOnlyRegex = /^[a-zA-Z\s.,;:!?'"\-()]+$/;
+    return englishOnlyRegex.test(text);
   }
   
   // 创建tooltip
@@ -276,17 +346,17 @@
   function addToWordbook(text) {
     const translation = tooltip.querySelector('.nl-translation');
     const translationText = translation ? translation.textContent : '';
-    
-    chrome.storage.local.get(['wordbook'], (result) => {
+
+    safeStorageGet(['wordbook'], (result) => {
       const wordbook = result.wordbook || [];
-      
+
       // 检查是否已存在
       const exists = wordbook.some(item => item.word === text);
       if (exists) {
         updateStarButton(true);
         return;
       }
-      
+
       // 添加新单词
       const newWord = {
         word: text,
@@ -296,9 +366,9 @@
         reviewed: false
       };
       wordbook.push(newWord);
-      
+
       // 保存后立即刷新高亮
-      chrome.storage.local.set({ wordbook }, () => {
+      safeStorageSet({ wordbook }, () => {
         updateStarButton(true);
         showCollectAnimation();
         // 直接高亮新单词，不等待完整刷新
@@ -306,19 +376,19 @@
       });
     });
   }
-  
+
   // 从生词本移除
   function removeFromWordbook(text) {
-    chrome.storage.local.get(['wordbook'], (result) => {
+    safeStorageGet(['wordbook'], (result) => {
       const wordbook = result.wordbook || [];
-      
+
       // 查找并移除
       const index = wordbook.findIndex(item => item.word === text);
       if (index > -1) {
         wordbook.splice(index, 1);
-        
+
         // 保存后立即移除高亮
-        chrome.storage.local.set({ wordbook }, () => {
+        safeStorageSet({ wordbook }, () => {
           updateStarButton(false);
           showUncollectAnimation();
           // 直接移除该单词的高亮
@@ -467,9 +537,9 @@
     tooltip.style.transform = 'translateY(4px)';
     
     // 检查是否在生词本中
-    chrome.storage.local.get(['wordbook'], (result) => {
+    safeStorageGet(['wordbook'], (result) => {
       const wordbook = result.wordbook || [];
-      const wordData = wordbook.find(item => 
+      const wordData = wordbook.find(item =>
         item.word.toLowerCase() === text.toLowerCase()
       );
       updateStarButton(!!wordData);
@@ -510,12 +580,12 @@
         <span>翻译中...</span>
       </div>
     `;
-    
-    chrome.runtime.sendMessage({
+
+    safeSendMessage({
       action: 'translate',
       text: text
     }, (response) => {
-      if (chrome.runtime.lastError) {
+      if (!response) {
         contentDiv.innerHTML = `
           <div class="nl-error">
             <svg viewBox="0 0 24 24" width="16" height="16">
@@ -526,7 +596,7 @@
         `;
         return;
       }
-      
+
       if (response.success) {
         contentDiv.innerHTML = `
           <div class="nl-word">${escapeHtml(text)}</div>
@@ -555,21 +625,25 @@
   // 生词高亮功能
   function highlightWords() {
     if (!config.highlightEnabled) return;
-    
+
     // 跳过正在hover时的刷新
     if (isTooltipHovered || isWordHighlighted) return;
-    
-    chrome.storage.local.get(['wordbook'], (result) => {
+
+    // 跳过有文本选中时的刷新
+    const selection = window.getSelection();
+    if (selection && !selection.isCollapsed) return;
+
+    safeStorageGet(['wordbook'], (result) => {
       const wordbook = result.wordbook || [];
-      
+
       // 移除现有高亮
       removeHighlights();
-      
+
       if (wordbook.length === 0) return;
-      
+
       // 遍历页面文本节点
       const textNodes = getTextNodes(document.body);
-      
+
       textNodes.forEach(node => {
         highlightTextNode(node, wordbook);
       });
@@ -764,47 +838,51 @@
   }
   
   // 监听来自popup或options的消息
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === 'updateConfig') {
-      // 更新配置
-      if (request.config) {
-        config = { ...config, ...request.config };
-        // 刷新高亮
+  try {
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+      if (request.action === 'updateConfig') {
+        // 更新配置
+        if (request.config) {
+          config = { ...config, ...request.config };
+          // 刷新高亮
+          if (config.highlightEnabled) {
+            highlightWords();
+          } else {
+            removeHighlights();
+          }
+        }
+        sendResponse({ success: true });
+        return;
+      }
+
+      if (request.action === 'toggleHighlight') {
+        config.highlightEnabled = request.enabled;
         if (config.highlightEnabled) {
           highlightWords();
         } else {
           removeHighlights();
         }
+        sendResponse({ success: true });
       }
-      sendResponse({ success: true });
-      return;
-    }
 
-    if (request.action === 'toggleHighlight') {
-      config.highlightEnabled = request.enabled;
-      if (config.highlightEnabled) {
+      if (request.action === 'refreshHighlights') {
         highlightWords();
-      } else {
-        removeHighlights();
+        sendResponse({ success: true });
       }
-      sendResponse({ success: true });
-    }
-    
-    if (request.action === 'refreshHighlights') {
-      highlightWords();
-      sendResponse({ success: true });
-    }
-    
-    if (request.action === 'addToBlacklist') {
-      chrome.runtime.sendMessage({
-        action: 'addToBlacklist',
-        domain: currentDomain
-      }, (response) => {
-        sendResponse(response);
-      });
-      return true;
-    }
-  });
+
+      if (request.action === 'addToBlacklist') {
+        safeSendMessage({
+          action: 'addToBlacklist',
+          domain: currentDomain
+        }, (response) => {
+          sendResponse(response);
+        });
+        return true;
+      }
+    });
+  } catch (e) {
+    // Extension context invalidated
+  }
   
   // 初始化
   init();
