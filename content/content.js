@@ -22,6 +22,7 @@
   let lastMouseDownTime = 0;
   let lastMouseDownTarget = null;
   let isDoubleClickInProgress = false;
+  let isBlacklisted = false;
 
   // 检查扩展上下文是否有效
   function isExtensionValid() {
@@ -110,10 +111,10 @@
   
   // 检查黑名单
   function checkBlacklist() {
-    const isBlacklisted = config.blacklist.some(domain => {
+    isBlacklisted = config.blacklist.some(domain => {
       return currentDomain.includes(domain) || domain.includes(currentDomain);
     });
-    
+
     if (isBlacklisted) {
       disableFeatures();
     } else {
@@ -123,7 +124,7 @@
   
   // 启用功能
   function enableFeatures() {
-    if (config.highlightEnabled) {
+    if (config.highlightEnabled && !isBlacklisted) {
       highlightWords();
     }
   }
@@ -159,7 +160,7 @@
       const selection = window.getSelection();
       if (selection && !selection.isCollapsed) return;
 
-      if (config.highlightEnabled) {
+      if (config.highlightEnabled && !isBlacklisted) {
         clearTimeout(highlightDebounceTimer);
         highlightDebounceTimer = setTimeout(highlightWords, 1500);
       }
@@ -197,8 +198,8 @@
   
   // 处理鼠标松开
   function handleMouseUp(e) {
-    // 如果功能已关闭，不处理
-    if (!config.enabled) return;
+    // 如果功能已关闭或网站在黑名单中，不处理
+    if (!config.enabled || isBlacklisted) return;
 
     // 如果点击的是tooltip内部，不处理
     if (tooltip && tooltip.contains(e.target)) {
@@ -236,8 +237,8 @@
 
   // 处理双击事件
   function handleDoubleClick(e) {
-    // 如果功能已关闭，不处理
-    if (!config.enabled) return;
+    // 如果功能已关闭或网站在黑名单中，不处理
+    if (!config.enabled || isBlacklisted) return;
 
     // 如果点击的是tooltip内部，不处理
     if (tooltip && tooltip.contains(e.target)) {
@@ -624,7 +625,7 @@
   
   // 生词高亮功能
   function highlightWords() {
-    if (!config.highlightEnabled) return;
+    if (!config.highlightEnabled || isBlacklisted) return;
 
     // 跳过正在hover时的刷新
     if (isTooltipHovered || isWordHighlighted) return;
@@ -845,7 +846,7 @@
         if (request.config) {
           config = { ...config, ...request.config };
           // 刷新高亮
-          if (config.highlightEnabled) {
+          if (config.highlightEnabled && !isBlacklisted) {
             highlightWords();
           } else {
             removeHighlights();
@@ -857,7 +858,7 @@
 
       if (request.action === 'toggleHighlight') {
         config.highlightEnabled = request.enabled;
-        if (config.highlightEnabled) {
+        if (config.highlightEnabled && !isBlacklisted) {
           highlightWords();
         } else {
           removeHighlights();
