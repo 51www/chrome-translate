@@ -23,6 +23,7 @@
   let lastMouseDownTarget = null;
   let isDoubleClickInProgress = false;
   let isBlacklisted = false;
+  let isEditing = false;
 
   // 检查扩展上下文是否有效
   function isExtensionValid() {
@@ -288,44 +289,52 @@
   // 创建tooltip
   function createTooltip() {
     if (tooltip) return;
-    
+
     tooltip = document.createElement('div');
     tooltip.id = 'neonlingo-tooltip';
     tooltip.className = 'neonlingo-tooltip';
     tooltip.innerHTML = `
-      <div class="nl-tooltip-header">
-        <div class="nl-tooltip-content">
-          <div class="nl-tooltip-loading">
-            <div class="nl-spinner"></div>
-            <span>翻译中...</span>
-          </div>
+      <div class="nl-tooltip-content">
+        <div class="nl-tooltip-loading">
+          <div class="nl-spinner"></div>
+          <span>翻译中...</span>
         </div>
-        <button class="nl-btn-star" title="收藏到生词本">
-          <svg viewBox="0 0 24 24" width="18" height="18">
-            <path class="star-outline" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-            <path class="star-filled" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-          </svg>
-        </button>
       </div>
       <div class="nl-tooltip-footer">
-        <div class="nl-tooltip-source">百度翻译</div>
+        <div class="nl-tooltip-source">记词儿</div>
+        <div class="nl-tooltip-btns">
+          <button class="nl-btn-edit" title="纠错并收藏">
+            <svg viewBox="0 0 24 24" width="14" height="14">
+              <path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+            </svg>
+          </button>
+          <button class="nl-btn-star" title="收藏到生词本">
+            <svg viewBox="0 0 24 24" width="14" height="14">
+              <path class="star-outline" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              <path class="star-filled" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+          </button>
+        </div>
       </div>
     `;
     document.body.appendChild(tooltip);
-    
+
     // 添加鼠标事件
     tooltip.addEventListener('mouseenter', () => {
       isTooltipHovered = true;
       clearTimeout(hoverTimer);
     });
-    
+
     tooltip.addEventListener('mouseleave', () => {
       isTooltipHovered = false;
       hideTooltip();
     });
-    
+
     // 添加收藏按钮点击事件
     tooltip.querySelector('.nl-btn-star').addEventListener('click', toggleWordbook);
+
+    // 添加纠错按钮点击事件
+    tooltip.querySelector('.nl-btn-edit').addEventListener('click', startEditTranslation);
   }
   
   // 切换收藏状态
@@ -507,6 +516,97 @@
     starBtn.classList.add('shake');
     setTimeout(() => starBtn.classList.remove('shake'), 500);
   }
+
+  // 开始编辑翻译
+  function startEditTranslation() {
+    const contentDiv = tooltip.querySelector('.nl-tooltip-content');
+    const currentTranslation = contentDiv.querySelector('.nl-translation')?.textContent || '';
+
+    isEditing = true;
+    contentDiv.innerHTML = `
+      <div class="nl-word">${escapeHtml(tooltip.dataset.text)}</div>
+      <textarea class="nl-translation-edit" rows="2">${escapeHtml(currentTranslation)}</textarea>
+      <div class="nl-edit-actions">
+        <button class="nl-btn-icon nl-btn-cancel" title="取消">
+          <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+        <button class="nl-btn-icon nl-btn-confirm" title="保存到生词本">
+          <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+        </button>
+      </div>
+    `;
+
+    // 聚焦textarea
+    const textarea = contentDiv.querySelector('.nl-translation-edit');
+    textarea.focus();
+    textarea.select();
+
+    // 阻止textarea的事件冒泡，防止触发隐藏tooltip的逻辑
+    textarea.addEventListener('mousedown', (e) => e.stopPropagation());
+    textarea.addEventListener('mouseup', (e) => e.stopPropagation());
+    textarea.addEventListener('click', (e) => e.stopPropagation());
+
+    // 添加按钮事件（阻止冒泡防止tooltip隐藏）
+    contentDiv.querySelector('.nl-btn-cancel').addEventListener('click', (e) => { e.stopPropagation(); cancelEditTranslation(); });
+    contentDiv.querySelector('.nl-btn-confirm').addEventListener('click', (e) => { e.stopPropagation(); saveEditedTranslation(); });
+  }
+
+  // 取消编辑
+  function cancelEditTranslation() {
+    const contentDiv = tooltip.querySelector('.nl-tooltip-content');
+    const originalTranslation = tooltip.dataset.originalTranslation || '';
+
+    isEditing = false;
+    contentDiv.innerHTML = `
+      <div class="nl-word">${escapeHtml(tooltip.dataset.text)}</div>
+      <div class="nl-translation">${escapeHtml(originalTranslation)}</div>
+    `;
+  }
+
+  // 保存编辑后的翻译到生词本
+  function saveEditedTranslation() {
+    const contentDiv = tooltip.querySelector('.nl-tooltip-content');
+    const textarea = contentDiv.querySelector('.nl-translation-edit');
+    const editedTranslation = textarea.value.trim();
+    const word = tooltip.dataset.text;
+
+    if (!word || !editedTranslation) return;
+
+    safeStorageGet(['wordbook'], (result) => {
+      const wordbook = result.wordbook || [];
+
+      // 检查是否已存在
+      const existsIndex = wordbook.findIndex(item => item.word.toLowerCase() === word.toLowerCase());
+      if (existsIndex > -1) {
+        // 更新翻译
+        wordbook[existsIndex].translation = editedTranslation;
+      } else {
+        // 添加新单词
+        wordbook.push({
+          word: word,
+          translation: editedTranslation,
+          addTime: Date.now(),
+          count: 1,
+          reviewed: false
+        });
+      }
+
+      safeStorageSet({ wordbook }, () => {
+        isEditing = false;
+        updateStarButton(true);
+        showCollectAnimation();
+
+        // 恢复显示
+        contentDiv.innerHTML = `
+          <div class="nl-word">${escapeHtml(word)}</div>
+          <div class="nl-translation">${escapeHtml(editedTranslation)}</div>
+        `;
+
+        // 高亮新单词
+        highlightNewWord(word, editedTranslation);
+      });
+    });
+  }
   
   // 显示tooltip
   function showTooltip(text, x, y) {
@@ -561,11 +661,11 @@
   
   // 隐藏tooltip
   function hideTooltip() {
-    if (tooltip && !isTooltipHovered) {
+    if (tooltip && !isTooltipHovered && !isEditing) {
       tooltip.style.opacity = '0';
       tooltip.style.transform = 'translateY(4px)';
       setTimeout(() => {
-        if (!isTooltipHovered) {
+        if (!isTooltipHovered && !isEditing) {
           tooltip.style.display = 'none';
         }
       }, 200);
@@ -603,6 +703,8 @@
           <div class="nl-word">${escapeHtml(text)}</div>
           <div class="nl-translation">${escapeHtml(response.translation)}</div>
         `;
+        // 存储原始翻译
+        tooltip.dataset.originalTranslation = response.translation;
       } else {
         contentDiv.innerHTML = `
           <div class="nl-error">

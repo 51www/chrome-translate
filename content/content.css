@@ -19,17 +19,8 @@
   overflow: hidden;
 }
 
-/* 头部区域 */
-.nl-tooltip-header {
-  display: flex;
-  align-items: flex-start;
-  padding: 14px 14px 10px 14px;
-  gap: 8px;
-}
-
 .nl-tooltip-content {
-  flex: 1;
-  min-width: 0;
+  padding: 12px 12px 8px 12px;
 }
 
 /* 加载状态 */
@@ -88,10 +79,11 @@
 
 /* 底部信息 */
 .nl-tooltip-footer {
-  padding: 8px 14px;
+  padding: 6px 12px;
   border-top: 1px solid #f0f0f0;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .nl-tooltip-source {
@@ -104,15 +96,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   border: none;
   background: transparent;
   cursor: pointer;
   transition: all 0.2s ease;
   flex-shrink: 0;
-  margin-top: -2px;
 }
 
 .nl-btn-star:hover {
@@ -198,62 +189,186 @@
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
 }
 
+/* 操作按钮区域 */
+.nl-tooltip-btns {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.nl-btn-edit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #8c8c8c;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.nl-btn-edit:hover {
+  color: #1677ff;
+  background: #f0f5ff;
+}
+
+/* 编辑翻译输入框 */
+.nl-translation-edit {
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 8px;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #1a1a1a;
+  line-height: 1.4;
+  resize: none;
+  font-family: inherit;
+  margin-top: 4px;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+
+.nl-translation-edit:focus {
+  outline: none;
+  border-color: #1677ff;
+}
+
+/* 编辑操作按钮 */
+.nl-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.nl-btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.nl-btn-cancel {
+  color: #8c8c8c;
+}
+
+.nl-btn-cancel:hover {
+  color: #ff4d4f;
+  background: #fff1f0;
+}
+
+.nl-btn-confirm {
+  color: #8c8c8c;
+}
+
+.nl-btn-confirm:hover {
+  color: #52c41a;
+  background: #f6ffed;
+}
+
 /* 深色模式 */
 @media (prefers-color-scheme: dark) {
   .neonlingo-tooltip {
     background: #1f1f1f;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), 0 1px 4px rgba(0, 0, 0, 0.2);
   }
-  
+
   .nl-tooltip-loading {
     color: #8c8c8c;
   }
-  
+
   .nl-spinner {
     border-color: #404040;
     border-top-color: #1677ff;
   }
-  
+
   .nl-word {
     color: #ffffff;
   }
-  
+
   .nl-translation {
     color: #a6a6a6;
   }
-  
+
   .nl-error {
     color: #ff7875;
   }
-  
+
   .nl-tooltip-footer {
     border-top-color: #303030;
   }
-  
+
   .nl-tooltip-source {
     color: #595959;
   }
-  
+
   .nl-btn-star:hover {
     background: #2a2a2a;
   }
-  
+
   .nl-btn-star .star-outline,
   .nl-btn-star .star-filled {
     stroke: #595959;
   }
-  
+
   .nl-btn-star:hover .star-outline,
   .nl-btn-star:hover .star-filled {
     stroke: #faad14;
   }
-  
+
   .nl-btn-star.collected .star-filled {
     fill: #faad14;
     stroke: #faad14;
   }
-  
+
   .nl-btn-star.collected:hover {
     background: #2a2106;
+  }
+
+  .nl-btn-edit {
+    color: #8c8c8c;
+  }
+
+  .nl-btn-edit:hover {
+    color: #1677ff;
+    background: rgba(22, 119, 255, 0.1);
+  }
+
+  .nl-translation-edit {
+    background: #2a2a2a;
+    border-color: #404040;
+    color: #ffffff;
+  }
+
+  .nl-translation-edit:focus {
+    border-color: #1677ff;
+  }
+
+  .nl-btn-cancel {
+    color: #8c8c8c;
+  }
+
+  .nl-btn-cancel:hover {
+    color: #ff7875;
+    background: rgba(255, 77, 79, 0.1);
+  }
+
+  .nl-btn-confirm {
+    color: #8c8c8c;
+  }
+
+  .nl-btn-confirm:hover {
+    color: #73d13d;
+    background: rgba(82, 196, 26, 0.1);
   }
 }
